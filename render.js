@@ -1,3 +1,5 @@
+import { join } from 'path';
+import tempy from 'tempy';
 import { readFromFile } from './utils.js';
 
 let lottieScript;
@@ -67,7 +69,7 @@ const getHtml = async function ({ animationData, background, width, height }) {
 `;
 }
 
-export default async function (browser, animationData, options = {}) {
+export default async function (browsers, animationData, options = {}) {
     const {
         background = 'transparent',
         width = undefined,
@@ -78,24 +80,39 @@ export default async function (browser, animationData, options = {}) {
     const html = await getHtml({ animationData, background, width, height });
     const fpsRatio = ~~animationData.fr / fps;
 
-    const page = await browser.newPage();
+    const directory = tempy.directory();
+    const files = [];
 
-    page.on('console', console.log.bind(console));
-    page.on('error', console.error.bind(console));
+    let currentFrame = 0;
+    const promises = [];
 
-    await page.setContent(html);
-    await page.waitForSelector('.ready');
+    for (const browser of browsers) {
+        promises.push(Promise.resolve().then(async () => {
+            const page = await browser.newPage();
 
-    const duration = await page.evaluate(() => duration);
-    const outputNumFrames = fps * duration;
+            page.on('console', console.log.bind(console));
+            page.on('error', console.error.bind(console));
 
-    const pageFrame = page.mainFrame();
-    const rootHandle = await pageFrame.$('#root');
+            await page.setContent(html);
+            await page.waitForSelector('.ready');
 
-    const result = [];
-    for (let frame = 0; frame < outputNumFrames; ++frame) {
-        await page.evaluate((frame) => animation.goToAndStop(frame, true), frame * fpsRatio);
-        result.push(await rootHandle.screenshot({ omitBackground: true, type: 'png' }));
+            const rootHandle = await page.mainFrame().$('#root');
+
+            const duration = await page.evaluate(() => duration);
+            const outputNumFrames = fps * duration;
+
+            while (currentFrame < outputNumFrames) {
+                const fileName = join(directory, `file-${currentFrame}.png`);
+                files[currentFrame] = fileName;
+
+                await page.evaluate((frame) => animation.goToAndStop(frame, true), currentFrame * fpsRatio);
+                await rootHandle.screenshot({ omitBackground: true, type: 'png', path: fileName });
+
+                ++currentFrame;
+            }
+        }));
     }
-    return result;
+    await Promise.all(promises);
+
+    return { directory, files, pattern: join(directory, `file-*.png`) };
 };

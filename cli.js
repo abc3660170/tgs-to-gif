@@ -2,9 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { ArgumentParser } from 'argparse';
 import { toGifFromFile } from './index.js';
-import { createBrowser } from './utils.js';
+import { createBrowsers } from './utils.js';
 
-const convertFiles = async function (filePaths, browser, options) {
+const convertFiles = async function (filePaths, options) {
   for (const filePath of filePaths) {
     console.log(`Converting ${filePath}...`);
 
@@ -23,6 +23,7 @@ const main = async function () {
   parser.add_argument('--height', {help: 'Output image height. Default: auto', type: Number});
   parser.add_argument('--width', {help: 'Output image width. Default: auto', type: Number});
   parser.add_argument('--fps', {help: 'Output frame rate. Default: auto', type: Number});
+  parser.add_argument('--concurrency', {help: 'Output frame rate. Default: 1', type: Number, default: 1});
   parser.add_argument('paths', {help: 'Paths to .tgs files to convert', nargs: '+'});
 
   const args = parser.parse_args();
@@ -40,9 +41,9 @@ const main = async function () {
     }
   }
 
-  const browser = await createBrowser();
-  await convertFiles(paths, browser, { width: args.width, height: args.height, fps: args.fps });
-  await browser.close();
+  const browsers = await createBrowsers(args.concurrency);
+  await convertFiles(paths, { browsers, width: args.width, height: args.height, fps: args.fps });
+  await Promise.all(browsers.map(browser => browser.close()));
 };
 
 main();

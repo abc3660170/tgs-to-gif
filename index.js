@@ -2,7 +2,7 @@ import fs from 'fs';
 import execa from 'execa';
 import zlib from 'zlib';
 import render from './render.js';
-import { createBrowser, saveScreenshots, streamToString } from './utils.js';
+import { createBrowsers, streamToString } from './utils.js';
 
 const normalizeOptions = function (animationData, options) {
   if (!options.width || !options.height) {
@@ -28,15 +28,15 @@ const normalizeOptions = function (animationData, options) {
 const fromStream = function (converter) {
   return async (inputStream, outputPath, options) => {
     const lottieString = await streamToString(inputStream.pipe(zlib.createGunzip()));
-    let browser;
-    if (!options.browser) {
-      options.browser = browser = await createBrowser();
+    let browsers;
+    if (!options.browsers) {
+      options.browsers = browsers = await createBrowsers(options.concurrency);
     }
 
     const animationData = JSON.parse(lottieString);
     const result = await converter(animationData, outputPath, normalizeOptions(animationData, options));
-    if (browser) {
-      await browser.close();
+    if (browsers) {
+      await Promise.all(browsers.map(browser => browser.close()));
     }
     return result;
   }
@@ -52,7 +52,7 @@ export const toGif = fromStream(async function (animationData, outputPath, optio
   options.quality = options.quality || 80;
   options.fps = options.fps || Math.min(animationData.fr, 50); // most viewers do not support gifs with FPS > 50
 
-  const { dir, pattern } = await saveScreenshots(await render(options.browser, animationData, options));
+  const { directory, pattern } = await render(options.browsers, animationData, options);
 
   try {
     await execa.shell([
@@ -68,7 +68,7 @@ export const toGif = fromStream(async function (animationData, outputPath, optio
   } catch (e) {
     throw e;
   } finally {
-    fs.rmdir(dir, { recursive: true }, () => {});
+    fs.rmdir(directory, { recursive: true }, () => {});
   }
 });
 export const toGifFromFile = fromFile(toGif);
@@ -81,7 +81,7 @@ export const convertFile = async function (inputPath, options = {}) {
 export const toWebP = fromStream(async function (animationData, outputPath, options = {}) {
   options.fps = options.fps || animationData.fr;
 
-  const { dir, files } = await saveScreenshots(await render(options.browser, animationData, options));
+  const { directory, files } = await render(options.browsers, animationData, options);
 
   try {
     await execa.shell([
@@ -94,7 +94,7 @@ export const toWebP = fromStream(async function (animationData, outputPath, opti
   } catch (e) {
     throw e;
   } finally {
-    fs.rmdir(dir, { recursive: true }, () => {});
+    fs.rmdir(directory, { recursive: true }, () => {});
   }
 });
 export const toWebpFromFile = fromFile(toWebP);
