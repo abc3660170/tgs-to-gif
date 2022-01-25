@@ -1,4 +1,7 @@
+import { join } from 'path';
+import tempy from 'tempy';
 import { readFromFile } from './utils.js';
+
 
 let lottieScript;
 
@@ -87,15 +90,19 @@ export default async function (browser, animationData, options = {}) {
     await page.waitForSelector('.ready');
 
     const duration = await page.evaluate(() => duration);
-    const outputNumFrames = fps * duration;
+    const outputNumFrames = Math.ceil(fps * duration);
 
     const pageFrame = page.mainFrame();
     const rootHandle = await pageFrame.$('#root');
 
-    const result = [];
+    const dir = tempy.directory();
+    const files = [];
+    files.length = outputNumFrames;
     for (let frame = 0; frame < outputNumFrames; ++frame) {
+        const filePath = join(dir, `file-${frame}.png`);
         await page.evaluate((frame) => animation.goToAndStop(frame, true), frame * fpsRatio);
-        result.push(await rootHandle.screenshot({ omitBackground: true, type: 'png' }));
+        await rootHandle.screenshot({ omitBackground: true, type: 'png', path: filePath });
+        files[frame] = filePath;
     }
-    return result;
+    return { dir, files, pattern: join(dir, 'file-*.png') };
 };

@@ -2,7 +2,7 @@ import fs from 'fs';
 import execa from 'execa';
 import zlib from 'zlib';
 import render from './render.js';
-import { createBrowser, saveScreenshots, streamToString } from './utils.js';
+import { createBrowser, streamToString } from './utils.js';
 
 const normalizeOptions = function (animationData, options) {
   if (!options.width || !options.height) {
@@ -52,7 +52,7 @@ export const toGif = fromStream(async function (animationData, outputPath, optio
   options.quality = options.quality || 80;
   options.fps = options.fps || Math.min(animationData.fr, 50); // most viewers do not support gifs with FPS > 50
 
-  const { dir, pattern } = await saveScreenshots(await render(options.browser, animationData, options));
+  const { dir, pattern } = await render(options.browser, animationData, options);
 
   try {
     await execa.shell([
@@ -81,7 +81,7 @@ export const convertFile = async function (inputPath, options = {}) {
 export const toWebP = fromStream(async function (animationData, outputPath, options = {}) {
   options.fps = options.fps || animationData.fr;
 
-  const { dir, files } = await saveScreenshots(await render(options.browser, animationData, options));
+  const { dir, files } = await render(options.browser, animationData, options);
 
   try {
     await execa.shell([
