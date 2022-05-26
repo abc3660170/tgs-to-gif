@@ -10,7 +10,7 @@ COPY --from=builder /usr/local/cargo/bin/gifski /usr/local/bin/gifski
 
 # https://github.com/puppeteer/puppeteer/blob/master/docs/troubleshooting.md#running-on-alpine
 RUN apk add --no-cache \
-      chromium \
+      chromium=99.0.4844.84-r0 \
       nss \
       freetype \
       freetype-dev \
