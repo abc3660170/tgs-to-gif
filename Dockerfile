@@ -30,6 +30,7 @@ ADD package-lock.json .
 RUN npm ci
 
 # build the app
+ADD tests tests
 ADD cli.js .
 ADD index.js .
 ADD render.js .

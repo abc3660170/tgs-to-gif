@@ -11,9 +11,11 @@ const formatMap = {
 const stickerFiles = readdirSync(join('tests', 'stickers'));
 
 for (const stickerFile of stickerFiles) {
-    for (const [format, formatFunc] of Object.entries(formatMap)) {
-        test(`check ${basename(stickerFile)} to ${format}`, async function () {
-            await formatFunc(stickerFile, tempy.file());
-        });
-    }
+    describe(basename(stickerFile), function () {
+        for (const [format, formatFunc] of Object.entries(formatMap)) {
+            test(format, async function () {
+                await formatFunc(stickerFile, tempy.file());
+            });
+        }
+    });
 }
