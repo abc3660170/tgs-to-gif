@@ -1,32 +1,19 @@
-import crypto from 'crypto';
+import { readdirSync } from 'fs';
+import { join, basename } from 'path';
 import tempy from 'tempy';
-import stickers from './stickers';
 import { toGifFromFile, toWebpFromFile } from '../index.js';
-import { readFromFile } from '../utils.js';
 
 const formatMap = {
     gif: toGifFromFile,
     webp: toWebpFromFile,
 };
 
-const actualStickers = {};
+const stickerFiles = readdirSync(join('tests', 'stickers'));
 
-for (const [file, { hashes, link }] of Object.entries(stickers)) {
-    const actualSticker = actualStickers[file] = { link, hashes: {} };
-    for (const [format, hash] of Object.entries(hashes)) {
-        test(`check ${file} to ${format}`, async function () {
-            const output = tempy.file();
-            await formatMap[format](`./tests/stickers/${file}`, output);
-            const outputFile = await readFromFile(output);
-            const md5sum = crypto.createHash('md5');
-            md5sum.update(outputFile);
-
-            const actualHash = actualSticker.hashes[format] = md5sum.digest('hex');
-            expect(actualHash).toEqual(hash);
+for (const stickerFile of stickerFiles) {
+    for (const [format, formatFunc] of Object.entries(formatMap)) {
+        test(`check ${basename(stickerFile)} to ${format}`, async function () {
+            await formatFunc(stickerFile, tempy.file());
         });
     }
 }
-
-afterAll(function () {
-    console.log(JSON.stringify(actualStickers, null, 2));
-});
