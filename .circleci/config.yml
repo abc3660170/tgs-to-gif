@@ -1,0 +1,24 @@
+script:
+  - docker run --rm tgs-to-gif /bin/sh -c "cd /app && npm test"
+
+
+version: 2.1
+
+jobs:
+  build:
+    machine: true
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: docker build -t tgs-to-gif:$CIRCLE_BRANCH .
+  test:
+    machine: true
+    steps:
+      - run: docker run --rm tgs-to-gif:$CIRCLE_BRANCH /bin/sh -c "cd /app && npm test"
+
+
+workflows:
+  tgs-to-gif-ci:
+    jobs:
+      - build
+      - test

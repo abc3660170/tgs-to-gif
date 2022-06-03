@@ -8,7 +8,7 @@ const formatMap = {
     webp: toWebpFromFile,
 };
 
-const stickerFiles = readdirSync(join('tests', 'stickers'));
+const stickerFiles = readdirSync(join('tests', 'stickers')).filter(x => x.endsWith('.tgs'));
 
 for (const stickerFile of stickerFiles) {
     describe(basename(stickerFile), function () {
